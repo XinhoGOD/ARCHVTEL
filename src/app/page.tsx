@@ -108,6 +108,14 @@ interface NFLStats {
     team: string | null;
     percent_started_change: number | null;
   }>;
+  topStartedChangeLastWeek: Array<{
+    player_name: string;
+    position: string | null;
+    team: string | null;
+    percent_started_change: number | null;
+    timestamp: string;
+    semana: number;
+  }>;
   totalStats: {
     totalAdds: number;
     totalDrops: number;
@@ -222,6 +230,11 @@ export default function Home() {
 
   const formatChartData = (details: PlayerDetail[]) => {
     return details.map(detail => ({
+      fecha: new Date(detail.timestamp).toLocaleDateString('es-ES', { 
+        month: 'short', 
+        day: 'numeric' 
+      }),
+      fechaCompleta: detail.timestamp,
       semana: detail.semana,
       rostered: detail.percent_rostered || 0,
       rosteredChange: detail.percent_rostered_change || 0,
@@ -259,6 +272,8 @@ export default function Home() {
     .sort((a, b) => (b.percent_rostered || 0) - (a.percent_rostered || 0))
     .slice(0, 5) || [];
 
+  const topStartedChangeLastWeekPlayers = stats?.topStartedChangeLastWeek || [];
+
   const topStartedChangePlayers = stats?.topPositiveChanges
     .sort((a, b) => (b.percent_started_change || 0) - (a.percent_started_change || 0))
     .slice(0, 5) || [];
@@ -285,15 +300,66 @@ export default function Home() {
         </div>
       ) : stats && (
         <div className="space-y-4 mb-6">
-          {/* Top Started Players - Executive Focus */}
+          {/* Top Started Change Last Week - NEW FOCUS */}
+          <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg text-green-400">
+                <Zap className="h-5 w-5" />
+                🔥 Trending Esta Semana - Mayor Started Change
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Jugadores con mayor crecimiento en titularidad en los últimos 7 días
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {topStartedChangeLastWeekPlayers.length === 0 ? (
+                <div className="text-center py-8">
+                  <Calendar className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+                  <p className="text-gray-400">No hay cambios significativos en la última semana</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                  {topStartedChangeLastWeekPlayers.map((player, index) => (
+                    <div key={player.player_name} className="bg-gradient-to-br from-green-900/30 to-green-800/20 rounded-lg p-3 border border-green-600/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          {index === 0 && <Crown className="h-4 w-4 text-yellow-500" />}
+                          <Badge className={getPositionColor(player.position)}>
+                            {player.position}
+                          </Badge>
+                        </div>
+                        <span className="text-xs text-green-400 font-semibold">#{index + 1}</span>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-semibold text-sm text-white truncate">{player.player_name}</p>
+                        <p className="text-xs text-gray-400">{player.team} • Sem {player.semana}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500">Started Change</span>
+                          <span className="text-sm font-bold text-green-400 flex items-center gap-1">
+                            <TrendingUp className="h-3 w-3" />
+                            +{player.percent_started_change?.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="text-xs text-green-300">
+                          {new Date(player.timestamp).toLocaleDateString('es-ES')}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Top Started Players - Elite Focus */}
           <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg text-yellow-400">
                 <Star className="h-5 w-5" />
-                Elite Players - Mayor Started
+                Elite Players - Mayor Started General
               </CardTitle>
               <CardDescription className="text-gray-400">
-                Jugadores con mayor porcentaje de titularidad en fantasía
+                Jugadores con mayor porcentaje de titularidad en fantasía (histórico)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -318,47 +384,6 @@ export default function Home() {
                         <span className="text-xs text-gray-500">Started</span>
                         <span className="text-sm font-bold text-green-400">
                           {player.percent_rostered?.toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Top Started Change Players - Executive Focus */}
-          <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg text-green-400">
-                <Zap className="h-5 w-5" />
-                Tendencia Ascendente - Mayor Started Change
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Jugadores con mayor crecimiento en titularidad
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                {topStartedChangePlayers.map((player, index) => (
-                  <div key={player.player_name} className="bg-gray-700/50 rounded-lg p-3 border border-gray-600">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {index === 0 && <TrendingUp className="h-4 w-4 text-green-500" />}
-                        <Badge className={getPositionColor(player.position)}>
-                          {player.position}
-                        </Badge>
-                      </div>
-                      <span className="text-xs text-gray-400">#{index + 1}</span>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="font-semibold text-sm text-white truncate">{player.player_name}</p>
-                      <p className="text-xs text-gray-400">{player.team}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">Change</span>
-                        <span className={`text-sm font-bold flex items-center gap-1 ${getChangeColor(player.percent_started_change)}`}>
-                          {getChangeIcon(player.percent_started_change)}
-                          {player.percent_started_change?.toFixed(1)}%
                         </span>
                       </div>
                     </div>
@@ -630,21 +655,34 @@ export default function Home() {
                                         </Card>
                                       </div>
 
-                                      {/* Charts */}
+                                      {/* Charts with Date on X-axis */}
                                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         <Card className="bg-gray-700/50 border-gray-600">
                                           <CardHeader>
-                                            <CardTitle className="text-lg text-white">Evolución de Porcentajes</CardTitle>
+                                            <CardTitle className="text-lg text-white">Evolución de Porcentajes por Fecha</CardTitle>
                                           </CardHeader>
                                           <CardContent>
                                             <ResponsiveContainer width="100%" height={300}>
                                               <LineChart data={formatChartData(selectedPlayer.playerDetails)}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                                                <XAxis dataKey="semana" stroke="#9CA3AF" />
+                                                <XAxis 
+                                                  dataKey="fecha" 
+                                                  stroke="#9CA3AF"
+                                                  angle={-45}
+                                                  textAnchor="end"
+                                                  height={60}
+                                                />
                                                 <YAxis stroke="#9CA3AF" />
                                                 <Tooltip 
                                                   contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
                                                   labelStyle={{ color: '#F9FAFB' }}
+                                                  labelFormatter={(value, payload) => {
+                                                    if (payload && payload[0]) {
+                                                      const data = payload[0].payload;
+                                                      return `${data.fecha} (Sem ${data.semana})`;
+                                                    }
+                                                    return value;
+                                                  }}
                                                 />
                                                 <Legend />
                                                 <Line 
@@ -668,17 +706,30 @@ export default function Home() {
 
                                         <Card className="bg-gray-700/50 border-gray-600">
                                           <CardHeader>
-                                            <CardTitle className="text-lg text-white">Cambio en Started por Semana</CardTitle>
+                                            <CardTitle className="text-lg text-white">Cambio en Started por Fecha</CardTitle>
                                           </CardHeader>
                                           <CardContent>
                                             <ResponsiveContainer width="100%" height={300}>
                                               <BarChart data={formatChartData(selectedPlayer.playerDetails)}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                                                <XAxis dataKey="semana" stroke="#9CA3AF" />
+                                                <XAxis 
+                                                  dataKey="fecha" 
+                                                  stroke="#9CA3AF"
+                                                  angle={-45}
+                                                  textAnchor="end"
+                                                  height={60}
+                                                />
                                                 <YAxis stroke="#9CA3AF" />
                                                 <Tooltip 
                                                   contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
                                                   labelStyle={{ color: '#F9FAFB' }}
+                                                  labelFormatter={(value, payload) => {
+                                                    if (payload && payload[0]) {
+                                                      const data = payload[0].payload;
+                                                      return `${data.fecha} (Sem ${data.semana})`;
+                                                    }
+                                                    return value;
+                                                  }}
                                                 />
                                                 <Legend />
                                                 <Bar 
@@ -694,17 +745,30 @@ export default function Home() {
 
                                       <Card className="bg-gray-700/50 border-gray-600">
                                         <CardHeader>
-                                          <CardTitle className="text-lg text-white">Actividad de Mercado</CardTitle>
+                                          <CardTitle className="text-lg text-white">Actividad de Mercado por Fecha</CardTitle>
                                         </CardHeader>
                                         <CardContent>
                                           <ResponsiveContainer width="100%" height={300}>
                                             <LineChart data={formatChartData(selectedPlayer.playerDetails)}>
                                               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                                              <XAxis dataKey="semana" stroke="#9CA3AF" />
+                                              <XAxis 
+                                                dataKey="fecha" 
+                                                stroke="#9CA3AF"
+                                                angle={-45}
+                                                textAnchor="end"
+                                                height={60}
+                                              />
                                               <YAxis stroke="#9CA3AF" />
                                               <Tooltip 
                                                 contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
                                                 labelStyle={{ color: '#F9FAFB' }}
+                                                labelFormatter={(value, payload) => {
+                                                  if (payload && payload[0]) {
+                                                    const data = payload[0].payload;
+                                                    return `${data.fecha} (Sem ${data.semana})`;
+                                                  }
+                                                  return value;
+                                                }}
                                               />
                                               <Legend />
                                               <Line 

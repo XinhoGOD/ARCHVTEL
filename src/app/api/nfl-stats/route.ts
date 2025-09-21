@@ -3,6 +3,20 @@ import { supabase } from '@/lib/supabase';
 
 export async function GET() {
   try {
+    // Get current date and calculate last week
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const oneWeekAgoISO = oneWeekAgo.toISOString();
+
+    // Get players with biggest started change in the last week
+    const { data: topStartedChangeLastWeekData, error: topStartedChangeLastWeekError } = await supabase
+      .from('nfl_fantasy_trends')
+      .select('player_name, position, team, percent_started_change, timestamp, semana')
+      .gt('percent_started_change', 0)
+      .gte('timestamp', oneWeekAgoISO)
+      .order('percent_started_change', { ascending: false })
+      .limit(10);
+
     // Get top players by adds
     const { data: topAddsData, error: topAddsError } = await supabase
       .from('nfl_fantasy_trends')
@@ -48,11 +62,11 @@ export async function GET() {
 
     if (topAddsError || topDropsError || topRosteredError || 
         topPositiveChangesError || topNegativeChangesError || 
-        totalStatsError || uniquePlayersError) {
+        totalStatsError || uniquePlayersError || topStartedChangeLastWeekError) {
       console.error('Supabase errors:', {
         topAddsError, topDropsError, topRosteredError,
         topPositiveChangesError, topNegativeChangesError,
-        totalStatsError, uniquePlayersError
+        totalStatsError, uniquePlayersError, topStartedChangeLastWeekError
       });
       return NextResponse.json(
         { error: 'Failed to fetch NFL stats from Supabase' },
@@ -129,6 +143,19 @@ export async function GET() {
       .sort((a, b) => (a.percent_started_change || 0) - (b.percent_started_change || 0))
       .slice(0, 5);
 
+    // Process top started change last week (group by player and get max change)
+    const topStartedChangeLastWeekMap = new Map();
+    topStartedChangeLastWeekData?.forEach(item => {
+      const key = item.player_name;
+      const current = topStartedChangeLastWeekMap.get(key);
+      if (!current || (item.percent_started_change || 0) > (current.percent_started_change || 0)) {
+        topStartedChangeLastWeekMap.set(key, item);
+      }
+    });
+    const topStartedChangeLastWeek = Array.from(topStartedChangeLastWeekMap.values())
+      .sort((a, b) => (b.percent_started_change || 0) - (a.percent_started_change || 0))
+      .slice(0, 5);
+
     // Calculate total stats
     const totalStats = {
       totalAdds: totalStatsData?.reduce((sum, item) => sum + (item.adds || 0), 0) || 0,
@@ -145,6 +172,7 @@ export async function GET() {
       topRostered,
       topPositiveChanges,
       topNegativeChanges,
+      topStartedChangeLastWeek, // Nuevo campo
       totalStats
     });
   } catch (error) {
