@@ -37,6 +37,11 @@ interface NFLPlayer {
   player_id: string | null;
   position: string | null;
   team: string | null;
+  percent_started_change?: number | null;
+  percent_rostered_change?: number | null;
+  adds?: number | null;
+  drops?: number | null;
+  timestamp?: string;
 }
 
 interface PlayerDetail {
@@ -562,6 +567,7 @@ export default function Home() {
                           <TableHead className="text-gray-300">Jugador</TableHead>
                           <TableHead className="text-gray-300 hidden sm:table-cell">Posición</TableHead>
                           <TableHead className="text-gray-300 hidden md:table-cell">Equipo</TableHead>
+                          <TableHead className="text-gray-300 hidden lg:table-cell">Started Change</TableHead>
                           <TableHead className="text-gray-300">Análisis</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -580,6 +586,15 @@ export default function Home() {
                               </Badge>
                             </TableCell>
                             <TableCell className="hidden md:table-cell text-gray-300">{player.team}</TableCell>
+                            <TableCell className="hidden lg:table-cell">
+                              <span className={`flex items-center gap-1 font-bold ${getChangeColor(player.percent_started_change)}`}>
+                                {getChangeIcon(player.percent_started_change)}
+                                {player.percent_started_change ? 
+                                  `${player.percent_started_change > 0 ? '+' : ''}${player.percent_started_change.toFixed(1)}%` 
+                                  : '0.0%'
+                                }
+                              </span>
+                            </TableCell>
                             <TableCell>
                               <Dialog>
                                 <DialogTrigger asChild>
